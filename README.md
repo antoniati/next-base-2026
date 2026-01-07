@@ -1,36 +1,211 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Template Base Next.js 2026 — Resumo Arquitetural
 
-## Getting Started
+Segue um **resumo técnico, objetivo e consolidado** do que foi definido e implementado neste **template base 2026**. Este documento serve como **referência arquitetural** para você no futuro e como **guia de onboarding** caso outro dev encoste no projeto.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## Objetivo do template
+
+Criar um **repositório base reutilizável**, moderno e previsível para múltiplos produtos (SaaS, e-commerce, webapps), com foco em:
+
+* Alta produtividade
+* Forte tipagem
+* Separação clara de responsabilidades
+* Facilidade de refatoração
+* Escala sem degradação arquitetural
+
+---
+
+## Stack base
+
+* **Next.js 15+ / App Router**
+* **Node runtime + Turbopack**
+* **TypeScript strict**
+* **React 19**
+* **TailwindCSS**
+* **pnpm**
+* **Prisma**
+* **PostgreSQL**
+* **NextAuth v5 (beta)**
+* **React Query**
+* **Zod**
+* **Resend**
+* **bcryptjs**
+
+---
+
+## Organização de código (Feature-first)
+
+```
+features/
+  <feature>/
+    schemas/      # Zod – contratos de entrada/saída
+    services/     # Regra de negócio (server-only)
+    actions/      # Orquestração (Server Actions)
+    hooks/        # Client hooks (React Query)
+    ui/           # Componentes isolados
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+**Regras**
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+* Nenhuma regra de negócio fora de `services`
+* Nenhum acesso ao banco fora de `repo / lib/server`
+* Server Actions não contêm lógica
+* UI nunca acessa Prisma, Session ou Env
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+---
 
-## Learn More
+## Autenticação & Sessão
 
-To learn more about Next.js, take a look at the following resources:
+### NextAuth v5
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+* Configuração centralizada
+* `auth()` como única API de sessão
+* Adapter Prisma
+* Sessão sempre resolvida no servidor
+* Client consome sessão via Server Action
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Guards
 
-## Deploy on Vercel
+* **Middleware**: apenas redirect (leve)
+* **Server**: guard real (`requireSession`, `requireUser`)
+* **Service**: nunca assume permissão implícita
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Data Access
+
+* Prisma isolado em `lib/server/db`
+* Client singleton (dev-safe)
+* Repositórios cuidam apenas de persistência
+* Services operam sobre domínio, não infra
+
+---
+
+## Result Pattern & Erros
+
+### Result Pattern
+
+```ts
+Result<T, AppError>
+```
+
+* Nenhum `throw` em service
+* Nenhum `try/catch` em UI
+* Server Actions apenas encapsulam
+
+### AppError
+
+* Códigos estáveis
+* Mensagens técnicas
+* UX mapeada no client
+* Logs desacoplados da UI
+
+---
+
+## Cache & React Query
+
+### Query Keys
+
+* Factory centralizada
+* Sem keys inline
+* Sempre tipadas (`as const`)
+
+### Reads
+
+* Server Actions idempotentes
+* Cache por sessão
+* `staleTime` explícito
+
+### Writes
+
+* Invalidação explícita
+* Nada de `invalidateQueries()` genérico
+* Optimistic update com rollback
+
+### Regras
+
+* RSC → fetch direto
+* Client → React Query
+* Cache limpo ao trocar sessão
+
+---
+
+## Environment & Config
+
+* `env.ts` com Zod
+* Falha rápida ao subir app
+* Nada de `process.env` direto
+* Client env separado quando necessário
+
+---
+
+## Infra & DX
+
+### Lint / TypeScript
+
+* ESLint Next + TypeScript
+* TS strict
+* Paths configurados (`@/*`)
+* Zero erro tolerado em CI
+
+### Formatting
+
+* Prettier
+* EditorConfig
+* LF padronizado
+
+---
+
+## Middleware
+
+* Guard leve por rota
+* Sem DB
+* Sem fetch
+* Sem lógica de domínio
+
+---
+
+## Prisma
+
+* Schema base (User)
+* Seed inicial
+* Script padronizado
+* Client singleton
+
+---
+
+## CI
+
+* GitHub Actions
+* Lint
+* Typecheck
+* Build fora do template base
+
+---
+
+## Princípios que guiam o template
+
+* **Explícito > implícito**
+* **Contrato > convenção**
+* **Erro como dado**
+* **Cache previsível**
+* **Sessão server-first**
+* **Feature isolada**
+* **Infra não vaza**
+
+---
+
+## Uso recomendado
+
+* Este repo **não deve ser alterado** após finalizado
+* Sempre clonar para novos projetos
+* Evoluções só retornam ao template se forem genéricas
+* Features específicas nunca entram aqui
+
+---
+
+## Status
+
+✅ Template **finalizado**
+✅ Arquitetura estável para iniciar 2026+
