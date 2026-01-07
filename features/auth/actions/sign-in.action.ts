@@ -1,7 +1,7 @@
 "use server";
 
+import { signIn } from "@/lib/server/auth";
 import { signInSchema } from "../schemas/credentials.schema";
-import { verifyCredentials } from "../services/verify-credentials.server";
 
 export async function signInAction(_: unknown, formData: FormData) {
   const raw = {
@@ -10,20 +10,15 @@ export async function signInAction(_: unknown, formData: FormData) {
   };
 
   const parsed = signInSchema.safeParse(raw);
-
   if (!parsed.success) {
-    return { ok: false, error: "Invalid input" };
+    return { ok: false };
   }
 
-  const user = await verifyCredentials(
-    parsed.data.email,
-    parsed.data.password
-  );
+  await signIn("credentials", {
+    email: parsed.data.email,
+    password: parsed.data.password,
+    redirect: false,
+  });
 
-  if (!user) {
-    return { ok: false, error: "Invalid credentials" };
-  }
-
-  // sessão entra aqui depois (NextAuth)
-  return { ok: true, user };
+  return { ok: true };
 }
